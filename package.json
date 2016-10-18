@@ -1,0 +1,19 @@
+{
+  "name": "nebulis-cli",
+  "version": "0.0.1",
+  "dependencies": {
+    "commander": "2.9.0",
+    "web3": "^0.17.0-beta"
+  },
+  "description": "A command line interface to interact with the nebulis DNS system.",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "William McKibbin",
+  "license": "ISC",
+  "bin": {
+    "neb": "index.js"
+  }
+}
