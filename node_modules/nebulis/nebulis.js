@@ -18,10 +18,19 @@ var exports = module.exports = new Nebulis();
 
 function Nebulis()
 {
+	//safe pointer to this object, use instead of 'this' keyword when inside callbacks
+	var pointer = this; 
+
 	//declare public functions as this.pubFunc = ...
 	this.sayHello = function()
 	{
 		console.log('hello you');
 	};
-
+	
+	//declare private functions as function() or var function = ...
+	function fuckOff()
+	{
+		console.log('fuck off');
+	}
 }
+
