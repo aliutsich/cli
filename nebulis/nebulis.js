@@ -1,7 +1,7 @@
 //require deps
 var fs = require('fs');
 var Web3 = require('web3');
-
+var child = require('child_process');
 //init web3, check if there's one floating around already
 if (typeof(web3) !== 'undefined')
 {
@@ -31,6 +31,12 @@ function Nebulis()
 	function fuckOff()
 	{
 		console.log('fuck off');
+	}
+	this.spawnNode = function(address, password)
+	{
+		var params = [ '--rpc','--unlock' address, '--password', password];
+		var options = [detached: true, stdio: ['ignore', 'pipe', 'pipe' ]];
+		child.spawn('geth', params, options);
 	}
 }
 
