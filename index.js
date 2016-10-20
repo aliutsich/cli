@@ -3,13 +3,19 @@
 var program = require('commander');
 var fs = require('fs');
 var nebulis = require('nebulis');
+var co = require('co');
+var prompt = require('co-prompt');
 
 program
-  .arguments('<file>')
-  .option('-u, --username <username>', 'The user to authenticate as')
-  .option('-p, --password <password>', 'The user\'s password')
-  .action(function(file) {
-    console.log('user: %s pass: %s file: %s',
-        program.username, program.password, file);
-  })
-  .parse(process.argv);
+  .command('run')
+  .option('-a, --address <Ethereum Address>', 'Ethereum account address')
+  .action(function() 
+  {
+  	co(function *()
+		{
+			var pass = yield prompt.password('Enter password for this address: ');
+			nebulis.spawnNode(program.address, pass);
+		});	
+  });
+  
+program.parse(process.argv);
