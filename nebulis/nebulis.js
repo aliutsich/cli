@@ -34,9 +34,10 @@ function Nebulis()
 	}
 	this.spawnNode = function(address, password)
 	{
-		var params = [ '--rpc','--unlock' address, '--password', password];
-		var options = [detached: true, stdio: ['ignore', 'pipe', 'pipe' ]];
-		child.spawn('geth', params, options);
+		var params = [ '--rpc','--unlock', address, '--password', password];
+		var options = {detached: true, stdio: ['ignore', 'pipe', 'pipe' ]};
+		var geth = child.spawn('geth', params, options);
+		console.log('Geth node started with pid: '+geth.pid);
 	}
 }
 
