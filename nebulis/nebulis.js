@@ -32,12 +32,25 @@ function Nebulis()
 	{
 		console.log('fuck off');
 	}
-	this.spawnNode = function(address, password)
+	this.spawnNode = function(address, password, isTest)
 	{
 		var params = [ '--rpc','--unlock', address, '--password', password];
+		if (isTest)
+		{
+			params.push('--testnet');
+			console.log('starting geth on testnet...');
+		}
 		var options = {detached: true, stdio: ['ignore', 'pipe', 'pipe' ]};
 		var geth = child.spawn('geth', params, options);
 		console.log('Geth node started with pid: '+geth.pid);
+		geth.stdout.on('data', function(output)
+		{
+			console.log('geth stdout: '+JSON.stringify(output.toString('utf8')));
+		});
+		geth.stderr.on('data', function(err)
+		{
+			console.log('geth process error: '+JSON.stringify(err.toString('utf8')));
+		});
 	}
 }
 

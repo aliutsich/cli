@@ -9,12 +9,19 @@ var prompt = require('co-prompt');
 program
   .command('run')
   .option('-a, --address <Ethereum Address>', 'Ethereum account address')
+  .option('-t, --test <is test>', 'Set to run on test net')
   .action(function() 
   {
   	co(function *()
 		{
+			var testnet = false;
+			if (program.test)
+			{
+				console.log('setting testnet to true');
+				testnet = true;	
+			}
 			var pass = yield prompt.password('Enter password for this address: ');
-			nebulis.spawnNode(program.address, pass);
+			nebulis.spawnNode(program.address, pass, testnet);
 		});	
   });
   
