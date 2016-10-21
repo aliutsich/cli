@@ -51,6 +51,7 @@ function Nebulis()
 		{
 			console.log('geth process error: '+JSON.stringify(err.toString('utf8')));
 		});
+		geth.unref();
 	}
 }
 

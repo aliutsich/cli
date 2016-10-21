@@ -7,15 +7,15 @@ var co = require('co');
 var prompt = require('co-prompt');
 
 program
+  .option('-a, --address <address>', 'Ethereum account address')
+  .option('-t, --test <testnet>', 'Set to run on test net')
   .command('run')
-  .option('-a, --address <Ethereum Address>', 'Ethereum account address')
-  .option('-t, --test <is test>', 'Set to run on test net')
   .action(function() 
   {
   	co(function *()
 		{
 			var testnet = false;
-			if (program.test)
+			if (program.testnet)
 			{
 				console.log('setting testnet to true');
 				testnet = true;	
@@ -24,5 +24,5 @@ program
 			nebulis.spawnNode(program.address, pass, testnet);
 		});	
   });
-  
+
 program.parse(process.argv);
