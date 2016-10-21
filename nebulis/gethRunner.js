@@ -1,7 +1,10 @@
 var net = require('net');
-var childProc = require('child-process');
+var childProc = require('child_process');
+process.stdout.write(process.argv.join());
 
-const PORT = process.argv[1]; 
+console.log('port before parse = '+process.argv[1]);
+const PORT = parseInt(process.argv[2], 10); 
+console.log('port = '+PORT);
 var params = process.argv.splice(0, 2);
 var options = {stdio: ['ignore', 'ignore', 'ignore']};
 
@@ -22,4 +25,4 @@ var serv = net.createServer(conn=>{
 	});
 });
 
-serv.listen({port: process.argv[1], host: 'localhost'});
+serv.listen({port: PORT, host: 'localhost'});
