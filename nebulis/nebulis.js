@@ -41,29 +41,25 @@ function Nebulis()
 			geth_params.push('--testnet');
 			console.log('starting geth on testnet...');
 		}
-		var gethRunnerPort = '8535';
-		var gethRunnerParams = ['gethRunner.js', gethRunnerPort];
-		var options = {detached: true, stdio: ['pipe', 'pipe', 'pipe' ]};
+		var gethRunnerPort = '8536';
+		var gethRunnerParams = ['node_modules/nebulis/gethRunner.js', gethRunnerPort];
+		var options = {detached: true, stdio: 'ignore'};
 		var params = gethRunnerParams.concat(geth_params);
 		var gethRunner = child.spawn('node', params, options);
 		console.log('Geth node runner started with pid: '+gethRunner.pid+' on port:'+ gethRunnerPort);
-		gethRunner.unref();
-		gethRunner.stdout.on('data', function(data)
-		{
-			console.log('here are teh params: '+JSON.stringify(data.toString('utf8')));
-		});
-
-		/*
+		
 		setTimeout(function()
 			{
-				var connection = net.connect({port: 8535}, () =>{
+				var connection = net.connect({port: 8536}, () =>{
 					console.log('Connected to the geth runner socket');
 					connection.on('data', (data) => {
   						console.log(data.toString());
 					});
 				});
 			}, 1000);
-		*/
+		
+		gethRunner.unref();
+
 	}
 }
 

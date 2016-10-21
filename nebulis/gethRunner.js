@@ -1,12 +1,10 @@
 var net = require('net');
 var childProc = require('child_process');
-process.stdout.write(process.argv.join());
 
-console.log('port before parse = '+process.argv[1]);
+process.stdout.write(process.argv.join());
 const PORT = parseInt(process.argv[2], 10); 
-console.log('port = '+PORT);
 var params = process.argv.splice(0, 2);
-var options = {stdio: ['ignore', 'ignore', 'ignore']};
+var options = {stdio: ['pipe', 'pipe', 'pipe']};
 
 var serv = net.createServer(conn=>{
 
@@ -15,6 +13,9 @@ var serv = net.createServer(conn=>{
 	{
 		
 	});
+	conn.on('end', function(){});
+	conn.on('close', function(){});
+	conn.on('error', function(){});
  	geth.stdout.on('data', function(output)
 	{
 		conn.write('geth stdout: '+JSON.stringify(output.toString('utf8')));
