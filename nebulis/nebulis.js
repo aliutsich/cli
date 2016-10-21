@@ -2,6 +2,7 @@
 var fs = require('fs');
 var Web3 = require('web3');
 var child = require('child_process');
+var net = require('net');
 //init web3, check if there's one floating around already
 if (typeof(web3) !== 'undefined')
 {
@@ -34,24 +35,27 @@ function Nebulis()
 	}
 	this.spawnNode = function(address, password, isTest)
 	{
-		var params = [ '--rpc','--unlock', address, '--password', password];
+		var geth_params = [ '--rpc','--unlock', address, '--password', password];
 		if (isTest)
 		{
 			params.push('--testnet');
 			console.log('starting geth on testnet...');
 		}
-		var options = {detached: true, stdio: ['ignore', 'pipe', 'pipe' ]};
-		var geth = child.spawn('geth', params, options);
-		console.log('Geth node started with pid: '+geth.pid);
-		geth.stdout.on('data', function(output)
-		{
-			console.log('geth stdout: '+JSON.stringify(output.toString('utf8')));
+		var gethRunnerPort = '8535';
+		var gethRunnerParams = ['gethRunn.js',gethRunnerPort];
+		var options = {detached: true, stdio: ['ignore', 'ignore', 'ignore' ]};
+		var params = getRunnerParams.concat(geth_params);
+		var gethRunner = child.spawn('node', params, options);
+		console.log('Geth node runner started with pid: '+gethRunner.pid+' on port:'+ gethRunnerPort);
+		gethRunner.unref();
+		var connection = net.connect({port: 8535}, () =>{
+			console.log('Connected to the geth runner socket');
+		}
+		
+
+		connection.on('data', (data) => {
+  			console.log(data.toString());
 		});
-		geth.stderr.on('data', function(err)
-		{
-			console.log('geth process error: '+JSON.stringify(err.toString('utf8')));
-		});
-		geth.unref();
 	}
 }
 
