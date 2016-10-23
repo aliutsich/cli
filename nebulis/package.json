@@ -2,6 +2,7 @@
   "name": "nebulis",
   "version": "0.0.1",
   "dependencies": {
+    "progress": "^1.1.8",
     "web3": "^0.17.0-beta"
   },
   "description": "An interface to the Nebulis Ethereum-based DNS system",

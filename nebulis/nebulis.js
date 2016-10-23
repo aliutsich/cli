@@ -23,18 +23,20 @@ function Nebulis()
 	//safe pointer to this object, use instead of 'this' keyword when inside callbacks
 	var pointer = this; 
 
+
+/* 
 	//declare public functions as this.pubFunc = ...
-	this.sayHello = function()
+	this.publicFuntion = function()
 	{
-		console.log('hello you');
+		console.log('hello everyone');
 	};
 	
 	//declare private functions as function() or var function = ...
-	function fuckOff()
+	function privateFunction()
 	{
-		console.log('fuck off');
+		console.log('Can't See me ;p');
 	}
-
+*/
 	function startSyncProgress()
 	{
 		console.log('creating sync bar');	
