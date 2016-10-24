@@ -39,8 +39,14 @@ function Nebulis()
 */
 	function startSyncProgress()
 	{
-		console.log('creating sync bar');	
-		var sync = web3.eth.syncing; 
+		console.log('creating sync bar');
+		
+		var attempts = 0;
+		var sync;
+		while(attempts <= 10 && !sync)
+		{
+			sync = web3.eth.syncing; 
+		}
 		var bar = new ProgressBar('  downloading [:bar] :percent :etas', {
     			complete: '=',
     			incomplete: ' ',
@@ -79,17 +85,29 @@ function Nebulis()
 			var isRpc = false;
 			var syncBar;
 			var lastBlock;
+                        var _syncCheckInt;
 			var connection = net.connect({port: 8536}, () =>{
-				console.log('Connected to the geth runner socket');
-				var _flagCheck = setInterval(function() {
+				console.log('Connected to geth');
+				var _syncCheck = function() {		
+					if (syncBar)
+					{
+						syncBar.bar.tick(syncBar.sync.currentBlock - lastBlock);
+  						if (syncBar.bar.complete) 
+						{
+    							console.log('\nSync Complete! Ready.\n');
+							process.exit(0);
+  						}
+					}
+				}
+				var _flagCheckInt = setInterval(function() {
     					if (isSync === true && isRpc === true) {
-        					clearInterval(_flagCheck);
+        					clearInterval(_flagCheckInt);
         					syncBar = startSyncProgress(); // the function to run once all flags are true
 						lastBlock = syncBar.start;
+ 						_syncCheckInt = setInterval(_syncCheck, 200);
     					}
 				}, 100); // interval set at 100 milliseconds	
-
-			
+			       
 				connection.on('data', (data) => {
   					//console.log(data.toString());
 					
@@ -107,15 +125,6 @@ function Nebulis()
 					}
 
 
-					if (syncBar)
-					{
-						syncBar.bar.tick(syncBar.sync.currentBlock - lastBlock);
-  						if (syncBar.bar.complete) 
-						{
-    							console.log('\nSync Complete! Ready.\n');
-							process.exit(0);
-  						}
-					}
 				});
 			});
 		}, 1000);
