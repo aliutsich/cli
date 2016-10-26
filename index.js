@@ -20,39 +20,34 @@ program
     .action(function(options) 
     {
       var statusCbk = function(status){console.log(status)};
-	  var syncCbk = function(web3Sync)
+	  var syncCbk = function(web3Cbk)
 	  {
-		var startBlock = web3Sync.currentBlock;
+		var startBlock = web3Cbk('currentBlock');
 		var lastBlock = startBlock;
+		var highestBlock = web3Cbk('highestBlock');
 		console.log('syncCbk, startBlock = '+startBlock+', lastBlock = '+lastBlock);
 		//progress bar object
 		var bar = new ProgressBar('  downloading [:bar] :percent :etas', {
     			complete: '=',
     			incomplete: ' ',
     			width: 60,
-    			total: web3Sync.highestBlock
+    			total: highestBlock
   		});
 		console.log('progress bar initialized');
 		//wrapper around prog bar obj
 		var syncBar =  {
-	       	'sync': web3Sync, 
+	       	'sync': true, 
 	        'bar': bar,
 			'start': startBlock
 		};
 		//called on interval to update prog bar
-		var _syncCheck = function() {		
+		var _syncCheck = function() {
+		
+			let current = web3Cbk('currentBlock');
 			if (syncBar)
 			{
-				if(syncBar.sync)
-				{
-					console.log('\nlastBlock: ' + lastBlock + ' currentBlock: '+syncBar.sync.currentBlock); 
-				}
-				else
-				{
-					console.log('You fucked mang');
-				}
-				syncBar.bar.tick(syncBar.sync.currentBlock - lastBlock);
-  				lastBlock = syncBar.sync.currentBlock;
+				syncBar.bar.tick(current - lastBlock);
+  				lastBlock = current;
 				if (syncBar.bar.complete) 
 				{
     				console.log('\nSync Complete! Ready.\n');
@@ -61,7 +56,7 @@ program
 			}
 		};
 		
-		console.log('highestBlock: '+ web3Sync.highestBlock+' currentBlock: '+web3Sync.currentBlock);
+		//console.log('highestBlock: '+ web3Cbk('highestBlock') + ' currentBlock: '+web3Cbk('currentBlock'));
 	
 		//start interval
  		var _syncCheckInt = setInterval(_syncCheck, 200);

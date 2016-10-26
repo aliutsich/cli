@@ -55,14 +55,14 @@ function Nebulis()
 		var onConnect = function()
 		{
 			statusCbk('Connected to geth');
-			var isSync=false, isRpc=false;       
+			var isSync=false, isRpc=false, syncStarted=false;       
 			connection.on('data', (data) => {
   				//console.log(data.toString());
 					
 				//check for sync started
 				if(data.toString().includes('Block synchronisation started'))
 				{
-					statusCbk('Syncing ethereum node...\n');
+					statusCbk('Block synchronisation started...\n');
 					isSync = true;
 				}
 				//check for geth rpc server
@@ -72,8 +72,9 @@ function Nebulis()
 					isRpc = true;
 				}
 				//set up sync tracking
-				if (isSync && isRpc)
+				if (isSync && isRpc && !syncStarted)
 				{
+					syncStarted = true;
 					statusCbk('Coinbase: '+web3.eth.coinbase );
        				startSyncProgress();
 				}
@@ -105,7 +106,10 @@ function Nebulis()
 			//	process.exit(0);
 			}
 			statusCbk('Not already sync\'d');	
-			syncCbk(web3.eth.syncing);
+			syncCbk(function(property)
+				{
+					return web3.eth.syncing[property];
+				});
 		}
 	};
 }
