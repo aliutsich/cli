@@ -43,6 +43,14 @@ program
 		var _syncCheck = function() {		
 			if (syncBar)
 			{
+				if(syncBar.sync)
+				{
+					console.log('\nlastBlock: ' + lastBlock + ' currentBlock: '+syncBar.sync.currentBlock); 
+				}
+				else
+				{
+					console.log('You fucked mang');
+				}
 				syncBar.bar.tick(syncBar.sync.currentBlock - lastBlock);
   				lastBlock = syncBar.sync.currentBlock;
 				if (syncBar.bar.complete) 

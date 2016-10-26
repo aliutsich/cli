@@ -74,6 +74,7 @@ function Nebulis()
 				//set up sync tracking
 				if (isSync && isRpc)
 				{
+					statusCbk('Coinbase: '+web3.eth.coinbase );
        				startSyncProgress();
 				}
 			});
@@ -98,10 +99,10 @@ function Nebulis()
 			statusCbk('Starting sync tracking...');
 			connection.end();
 			
-			if (!web3.eth.syncing)
+			while(!web3.eth.syncing)
 			{
-				statusCbk('Node already sync\'d, returning');
-				process.exit(0);
+				statusCbk('Sync object not ready...');
+			//	process.exit(0);
 			}
 			statusCbk('Not already sync\'d');	
 			syncCbk(web3.eth.syncing);
