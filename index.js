@@ -7,6 +7,7 @@ var co = require('co');
 var prompt = require('co-prompt');
 var ProgressBar = require('progress');
 
+//init Nebulis module
 
 /*
  * Run sub-command hanles initializing and stopping ipfs and geth processes.
@@ -72,9 +73,9 @@ program
 
 program
   .command('new')
-    .option('-w, -who','Creates a new who contract and returns the address.')
-    .option('-c, -cluster','Creates a new cluster contract')
-    .option('-z, -zone','Creates a new cluster contract')
+    .option('-w, --who','Creates a new who contract and returns the address.')
+    .option('-c, --cluster','Creates a new cluster contract')
+    .option('-z, --zone','Creates a new cluster contract')
     .action(function(options)
     {
       console.log('Creating a new who contract');
@@ -93,9 +94,7 @@ program
 
 
 
-
 program.parse(process.argv);
-
 
 
 /* Subcommand template

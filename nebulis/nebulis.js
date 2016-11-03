@@ -4,6 +4,8 @@ var Web3 = require('web3');
 var child = require('child_process');
 var net = require('net');
 var ProgressBar = require('progress');
+var _ = require('underscore');
+
 //init web3, check if there's one floating around already
 if (typeof(web3) !== 'undefined')
 {
@@ -18,16 +20,24 @@ else
 //exports
 var exports = module.exports = new Nebulis();
 
+/**
+*	Constructor
+*	@param Abi the abi array for the Nebulis contract
+*	@param Address the address of the Nebulis contract 
+*/
 function Nebulis()
 {
 	//safe pointer to this object, use instead of 'this' keyword when inside callbacks
 	var pointer = this; 
 
+	
 	/**
 	*	Start a geth node to run in the background
 	*	@param address the address to unlock
 	*	@param password the password associated with address
 	*	@param isTest {boolean} if true will run geth on testnet
+	*	@param statusCbk callback to send log messages to
+	*	@param syncCbk callback to pass accessor to web3.eth.syncing to
 	*/
 	this.spawnNode = function(address, password, isTest, statusCbk, syncCbk)
 	{
@@ -68,14 +78,14 @@ function Nebulis()
 				//check for geth rpc server
 				if(data.toString().includes('HTTP endpoint opened'))
 				{
-					statusCbk('RPC HTTP endpoint started.\n');
+					statusCbk('RPC HTTP endpoint started...\n');
 					isRpc = true;
 				}
 				//set up sync tracking
 				if (isSync && isRpc && !syncStarted)
 				{
 					syncStarted = true;
-					statusCbk('Coinbase: '+web3.eth.coinbase );
+					statusCbk('Using coinbase: '+web3.eth.coinbase );
        				startSyncProgress();
 				}
 			});
@@ -111,6 +121,62 @@ function Nebulis()
 					return web3.eth.syncing[property];
 				});
 		}
+	
 	};
+
+
+	/** @private
+	*
+	*	generic function to initialize a web3.eth.contract object
+	*	@param abi the abi array for the contract
+	*	@param data either an address for an existing contract or 
+	*		an object containing data for deploying a new contract
+	*	@param cbk a callback function to pass the initialized contract to
+	*/	
+	var initContract = function(abi, data, cbk)
+	{
+		var contract = web3.eth.contract(abi);
+		if (typeof(data) !== 'object')
+		{
+			contract = contract.at(address);
+			cbk(contract);
+		}
+		else
+		{
+			//deploy new
+			var contractParams = {
+				from: data.fromAddr,
+				data:  data.code,
+				gas: data.gasAmount
+			};
+			
+			var constructor = contract.new;
+			var constructorParams = data.params;
+			for (let i = 0; i < constructorParams.length; i++)
+    		{
+        		constructor = _.partial(constructor, constructorParams[i]);
+    		}	
+			
+			constructor(contractParams, function(err, theContract)
+				{
+					if (err)
+					{
+						//handle it
+						cbk(err);
+					}
+					else if (theContract.address)
+					{
+						//contract has been mined
+						cbk(theContract);
+					}
+					else
+					{
+						//report the transaction hash somehow
+						//theContract.transactionHash
+					}
+				});
+		}
+	};
+
 }
 

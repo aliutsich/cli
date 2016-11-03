@@ -8,6 +8,7 @@
     "commander": "2.9.0",
     "nebulis": "file:nebulis",
     "progress": "^1.1.8",
+    "underscore": "^1.8.3",
     "web3": "^0.17.0-beta"
   },
   "description": "A command line interface to interact with the nebulis DNS system.",
