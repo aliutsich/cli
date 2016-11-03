@@ -16,6 +16,7 @@ var ProgressBar = require('progress');
 
 program
   .command('run')
+	.description('Start a background geth node')
     .option('-a, --address <address>', 'Ethereum account address')
     .option('-t, --testnet', 'Set to run on test net')
     .action(function(options) 
@@ -70,28 +71,47 @@ program
        });
     });	
 
-
-program
-  .command('new')
-    .option('-w, --who','Creates a new who contract and returns the address.')
-    .option('-c, --cluster','Creates a new cluster contract')
-    .option('-z, --zone','Creates a new cluster contract')
-    .action(function(options)
+program.command('new-who <arg1> <arg2> <arg3>')
+	.description('Create a new Who contract')
+    .action(function(arg1, arg2, arg3)
     {
-      console.log('Creating a new who contract');
+		
+	});
+
+program.command('new-cluster <name> <description> <guardians> <deposit> <code>')
+	.description('Create a new cluster')
+	.action(function(name, desc, guards, deposit, code)
+	{
+	
+	});
+
+program.command('new-zone <name> <description> <guardians> <deposit> <code>')
+	.description('Create a new zone')
+	.action(function(name, desc, guards, deposit, code)
+	{
+	
+	});
+
+program.command('list-balance <who-address>')
+	.description('Display the balance of a given Who contract')
+    .action(function(who)
+    {
+
     });
 
+program.command('list-who')
+	.description('Display the Who contracts owned by the currently running node')
+	.action(function()
+	{
+	
+	});
 
-
-
-program
-  .command('list')
-    .option('','')
-    .action(function(options)
-    {
-
-    });
-
+program.command('list-domains <who-address>')
+	.description('Display the domains owned by the given Who contract')
+	.action(function()
+	{
+	
+	});
 
 
 program.parse(process.argv);
