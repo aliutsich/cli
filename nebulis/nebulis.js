@@ -304,6 +304,63 @@ function Nebulis()
 				}
 			});
 	};
-
+	
+	/** @private
+	 *	List all the who contracts attached to a particular ethereum account. Defaults to current running account
+	 *	@param address optional parameter for 
+	 *	@param cbk a callback function to give the who contract to.
+	 *
+     */
+	var listWho = function(ethAddress, cbk)
+	{
+		let abi = [];
+		let whoisAddress = '';
+		var whois;
+		var who;
+		var whoAddress;
+		var whoAccount = {};
+		//var whoisAddress = nebulisContract.Whois();
+		//Get a whois contract reference
+		initContract(abi,whoisAddress , function(err, wic)
+			{
+				if (err)
+				{
+					cbk(err, null);
+				}
+				else
+				{
+					whois = wic;
+				}
+			});
+		whoAddress = whois.whoDIS(address);
+		if(whoAddress)
+		{
+			initContract(abi,whoisAddress , function(err, wc)
+				{
+					if (err)
+					{
+						cbk(err, null);
+					}
+					else
+					{
+						who = wc;
+					}
+				});
+			if(who)
+			{
+				let whoInfo = who.whoInfo.call(whoAddress);
+				whoAccount = {name: whoInfo[0], email: whoInfo[1], company:whoInfo[2], address:whoAddress};
+				cbk(null, whoAccount);	
+			}
+			else
+			{
+				cbk('ERROR: Unable to access who contract', null);
+			}
+		}
+		else
+		{
+			cbk('ERROR: No who contract exists for this address.', null);
+		}
+	}
 }
 
