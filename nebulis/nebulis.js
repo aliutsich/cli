@@ -30,8 +30,10 @@ function Nebulis()
 	//safe pointer to this object, use instead of 'this' keyword when inside callbacks
 	var pointer = this; 
 	
-	//convenience handle to the Nebulis contract
+	//convenience handle to the Nebulis contracts
 	var nebulisContract = null;
+	var dustContract = null;
+	var whoisContract = null;
 	
 	/**
 	*	Start a geth node to run in the background
@@ -150,6 +152,9 @@ function Nebulis()
 				case 'zone':
 					newZone(params, cbk);
 				break;
+				case 'domain':
+					newDomain(gas, params, cbk);
+				break;
 			}
 		};
 		//Make sure we're attached to Nebulis
@@ -178,7 +183,66 @@ function Nebulis()
 				});
 		}	
 	};
+
+	/**
+	*	Get various info from Nebulis
+	*	@param listWhat what info to get
+	*	@param address the address of the contract to query about
+	*	@param cbk a function to send the result to
+	*/
+	this.list = function(listWhat, addr, cbk)
+	{
+		addr = addr || web3.eth.defaultAccount;
+		switch(listWhat.toLowerCase())
+		{
+			case 'balance':
+				listBalance(addr, cbk);
+			break;
+			case 'domains':
+				listDomains(addr, cbk);
+			break;
+			case 'who':
+				listWho(addr, cbk);
+			break;
+		}
+	};
 	
+	/**
+	*
+	*/
+	var listBalance = function(whoAddr, cbk)
+	{
+		var doListBalance = function()
+		{
+
+		};
+		
+		if (dustContract)
+		{
+			doListBalance();
+		}
+		else
+		{
+			//get Dust abi
+			let abi = [];
+			//get Dust addr
+			let address = '';
+			
+			initContract(abi, address, function(err, dust)
+				{
+					if (err)
+					{
+						cbk(err, null);
+					}
+					else
+					{
+						dustContract = dust;
+						doListBalance();
+					}
+				});
+		}	
+	};
+
 	/** @private
 	*	
 	*	Create a new "who" contract
@@ -189,33 +253,92 @@ function Nebulis()
 	*/
 	var newWho = function(gasAmnt, params, cbk)
 	{
-		//get abi for whois contract
-		var abi = [];
+		var doNewWho = function()
+		{
+			let transObj = {gas: gasAmnt};
+			let name = web3.toHex(params.name);
+			let company = web3.toHex(params.company);
+			let email = web3.toHex(params.email);
+				
+			whoisContract.Genesis(name, company, email, transObj, cbk);
+		};
 	
-		//get address
-		var address = '';
+		if (whoisContract)
+		{
+			doNewWho();
+		}		
+		else
+		{
+			//get abi for whois contract
+			var abi = [];
+			//get address
+			var address = '';
 
-		//connect to whois contract
+			//connect to whois contract
+			initContract(abi, address, function(err, whois)
+				{
+					if (err)
+					{
+						cbk(err, null);
+					}
+					else
+					{
+						whoisContract = whois;
+						doNewWho() 
+					}
+				});
+		}
+	};
 	
-		initContract(abi, address, function(err, whois)
+	/** @private
+	*	Register a new domain
+	*	@param gasAmnt the amount of gas to send with the transaction
+	*	@param params an object storing values to pass to the cluster.genesis function
+	*	@param cbk a function to which to pass the result of the transaction
+	*/
+	var newDomain = function(gasAmnt, params, cbk)
+	{
+		let clusterAddr = ''; //get from params.clusterName
+		let abi = [];
+		
+		//attach to cluster contract
+		initContract(abi, clusterAddr, function(err, cluster)
 			{
 				if (err)
 				{
-					cbk(err, null);
+					cbk('Error attaching to cluster: '+err, null);
 				}
 				else
 				{
-					//call genesis function
 					let transObj = {gas: gasAmnt};
-					let name = web3.toHex(params.name);
-					let company = web3.toHex(params.company);
-					let email = web3.toHex(params.email);
+					let domain = params.domainName;
+					let redirect = params.redirect;
+					let publicity = params.publicity;
+					let who = null;
+					if (params.who)
+					{
+						who = params.who
+						cluster.genesis(who, domain, redirect, publicity, transObj, cbk);
+					}
+					else
+					{
+						listWho(web3.eth.defaultAccount, function(err, result)
+							{
+								if (err)
+								{
+									cbk('Error getting who address: '+err, null);
+								}
+								else
+								{
+									cluster.genesis(result.address, domain, redirect, publicity, transObj, cbk);
+								}
+							});
+					}
 					
-					whois.Genesis(name, company, email, transObj, cbk); 
 				}
-			});
-	};
-	
+			});	
+	}
+
 	/** @private
 	*
 	*	Create a new "cluster" contract

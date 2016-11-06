@@ -113,6 +113,39 @@ program.command('new-zone <name> <description> <guardians> <deposit> <code>')
 	
 	});
 
+program.command('new-domain <cluster-name> <domain-name> <redirect-hash>')
+	.description('Register a new domain')
+	.option('-p, --priv', 'Sets the domain as private')
+	.option('-w, --who <who-address>', 'The address of the who contract in charge of the domain.  Defaults to that owned by the running node')
+	.option('-g, --gas <gas-amount>', 'Amount of gas to send with the transaction')
+	.action(function(clusterName, domainName, redirect, options)
+	{
+		var params = {};
+		params.clusterName = clusterName;
+		params.domainName = domainName;
+		params.redirect = redirect;
+		params.publicity = !options.priv;
+		
+		if (options.who)
+		{
+			params.who = options.who;
+		}		
+	
+		var gasAmnt = options.gas || 2000;	
+	
+		nebulis.createNew('domain', params, gasAmnt, function(err, result)
+			{
+				if (err)
+				{
+					console.log('Error: '+err);
+				}
+				else
+				{
+					console.log('Domain '+domainName+' registered successfully');
+				}
+			}); 
+	}); 
+
 program.command('list-balance <who-address>')
 	.description('Display the balance of a given Who contract')
     .action(function(who)
