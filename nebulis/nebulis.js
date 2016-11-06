@@ -30,8 +30,10 @@ function Nebulis()
 	//safe pointer to this object, use instead of 'this' keyword when inside callbacks
 	var pointer = this; 
 	
-	//convenience handle to the Nebulis contract
+	//convenience handle to the Nebulis contracts
 	var nebulisContract = null;
+	var dustContract = null;
+	var whoisContract = null;
 	
 	/**
 	*	Start a geth node to run in the background
@@ -178,7 +180,66 @@ function Nebulis()
 				});
 		}	
 	};
+
+	/**
+	*	Get various info from Nebulis
+	*	@param listWhat what info to get
+	*	@param address the address of the contract to query about
+	*	@param cbk a function to send the result to
+	*/
+	this.list = function(listWhat, addr, cbk)
+	{
+		addr = addr || web3.eth.defaultAccount;
+		switch(listWhat.toLowerCase())
+		{
+			case 'balance':
+				listBalance(addr, cbk);
+			break;
+			case 'domains':
+				listDomains(addr, cbk);
+			break;
+			case 'who':
+				listWho(addr, cbk);
+			break;
+		}
+	};
 	
+	/**
+	*
+	*/
+	var listBalance = function(whoAddr, cbk)
+	{
+		var doListBalance = function()
+		{
+
+		};
+		
+		if (dustContract)
+		{
+			doListBalance();
+		}
+		else
+		{
+			//get Dust abi
+			let abi = [];
+			//get Dust addr
+			let address = '';
+			
+			initContract(abi, address, function(err, dust)
+				{
+					if (err)
+					{
+						cbk(err, null);
+					}
+					else
+					{
+						dustContract = dust;
+						doListBalance();
+					}
+				});
+		}	
+	};
+
 	/** @private
 	*	
 	*	Create a new "who" contract
@@ -189,31 +250,41 @@ function Nebulis()
 	*/
 	var newWho = function(gasAmnt, params, cbk)
 	{
-		//get abi for whois contract
-		var abi = [];
+		var doNewWho = function()
+		{
+			let transObj = {gas: gasAmnt};
+			let name = web3.toHex(params.name);
+			let company = web3.toHex(params.company);
+			let email = web3.toHex(params.email);
+				
+			whoisContract.Genesis(name, company, email, transObj, cbk);
+		};
 	
-		//get address
-		var address = '';
+		if (whoisContract)
+		{
+			doNewWho();
+		}		
+		else
+		{
+			//get abi for whois contract
+			var abi = [];
+			//get address
+			var address = '';
 
-		//connect to whois contract
-	
-		initContract(abi, address, function(err, whois)
-			{
-				if (err)
+			//connect to whois contract
+			initContract(abi, address, function(err, whois)
 				{
-					cbk(err, null);
-				}
-				else
-				{
-					//call genesis function
-					let transObj = {gas: gasAmnt};
-					let name = web3.toHex(params.name);
-					let company = web3.toHex(params.company);
-					let email = web3.toHex(params.email);
-					
-					whois.Genesis(name, company, email, transObj, cbk); 
-				}
-			});
+					if (err)
+					{
+						cbk(err, null);
+					}
+					else
+					{
+						whoisContract = whois;
+						doNewWho() 
+					}
+				});
+		}
 	};
 	
 	/** @private
