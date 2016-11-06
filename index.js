@@ -71,11 +71,32 @@ program
        });
     });	
 
-program.command('new-who <arg1> <arg2> <arg3>')
+program.command('new-who')
 	.description('Create a new Who contract')
-    .action(function(arg1, arg2, arg3)
+	.option('-n, --name <name>', 'Your name (optional)')
+	.option('-e, --email <email>', 'Your email address (optional)')
+	.option('-c, --company <company>', 'Your company (optional');
+	.option('-g, --gas <gas amount>', 
+		'The amount of gas to send with the transaction (optional)');
+    .action(function(options)
     {
-		
+		var params = {};
+		params.name = options.name || '';
+		params.email = options.email || '';
+		params.company = options.company || '';
+		var gas = options.gas || 2000; //Dunno if this is actually a reasonable default
+	
+		nebulis.createNew('who', params, gas, function(err, result)
+			{
+				if (err)
+				{
+					console.log('Error: '+err);
+				}
+				else
+				{
+					console.log('Who contract created at address: '+result);
+				}
+			}); 
 	});
 
 program.command('new-cluster <name> <description> <guardians> <deposit> <code>')

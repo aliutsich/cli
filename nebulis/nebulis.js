@@ -135,20 +135,20 @@ function Nebulis()
 	*	@param from the address from which to send the transaction
 	*	@param cbk a function to which to send the new contract 
 	*/
-	this.createNew = function(type, params, gas, from, cbk)
+	this.createNew = function(type, params, gas, cbk)
 	{
 		var doCreate = function()
 		{
 			switch(type.toLowerCase())
 			{
 				case 'who':
-					createNewWho(gas, from, params, cbk);
+					newWho(gas, params, cbk);
 				break;
 				case 'cluster':
-					createNewCluster(params, cbk);
+					newCluster(params, cbk);
 				break;
 				case 'zone':
-					createNewZone(params, cbk);
+					newZone(params, cbk);
 				break;
 			}
 		};
@@ -187,36 +187,33 @@ function Nebulis()
 	*	@param params the parameters to pass to the who constructor
 	*	@param cbk a callback function to which to pass the address of the new contract
 	*/
-	var newWho = function(gas, from, params, cbk)
+	var newWho = function(gasAmnt, params, cbk)
 	{
-		//get abi for who contract
+		//get abi for whois contract
 		var abi = [];
-		
-		//get byte code
-		var code = '';
+	
+		//get address
+		var address = '';
 
-		//set params like so: neb address, name, email, company, whois address
-		var paramArray = [];
-		paramArray.push(nebulisContract.address);
-		paramArray.push(params.name || '');
-		paramArray.push(params.email || '');
-		paramArray.push(params.company || '');
-		if (!params.whois)
-		{
-			cbk('No Whois address provided', null);
-			return;
-		}
-		paramArray.push(params.whois);
-
-		var contractData = {
-			code: code,
-			fromAddr: from,
-			gasAmount: gas,
-			params: paramArray
-		};
-			
-
-		deployContract(abi, contractData, cbk);
+		//connect to whois contract
+	
+		initContract(abi, address, function(err, whois)
+			{
+				if (err)
+				{
+					cbk(err, null);
+				}
+				else
+				{
+					//call genesis function
+					let transObj = {gas: gasAmnt};
+					let name = web3.toHex(params.name);
+					let company = web3.toHex(params.company);
+					let email = web3.toHex(params.email);
+					
+					whois.Genesis(name, company, email, transObj, cbk); 
+				}
+			});
 	};
 	
 	/** @private
@@ -269,6 +266,9 @@ function Nebulis()
 	*			fromAddr - the address from which to send the transaction,
 	*					defaults to web3 coinbase
 	*	@param cbk a callback function to which to send the created web3 contract object
+	*
+	*	--Note: Unsure whether we'll ever actually need this; maybe all contracts are created
+	*			indirectly through other existing contracts
 	*/
 	var deployContract = function(abi, data, cbk)
 	{
