@@ -152,6 +152,9 @@ function Nebulis()
 				case 'zone':
 					newZone(params, cbk);
 				break;
+				case 'domain':
+					newDomain(gas, params, cbk);
+				break;
 			}
 		};
 		//Make sure we're attached to Nebulis
@@ -287,6 +290,55 @@ function Nebulis()
 		}
 	};
 	
+	/** @private
+	*	Register a new domain
+	*	@param gasAmnt the amount of gas to send with the transaction
+	*	@param params an object storing values to pass to the cluster.genesis function
+	*	@param cbk a function to which to pass the result of the transaction
+	*/
+	var newDomain = function(gasAmnt, params, cbk)
+	{
+		let clusterAddr = ''; //get from params.clusterName
+		let abi = [];
+		
+		//attach to cluster contract
+		initContract(abi, clusterAddr, function(err, cluster)
+			{
+				if (err)
+				{
+					cbk('Error attaching to cluster: '+err, null);
+				}
+				else
+				{
+					let transObj = {gas: gasAmnt};
+					let domain = params.domainName;
+					let redirect = params.redirect;
+					let publicity = params.publicity;
+					let who = null;
+					if (params.who)
+					{
+						who = params.who
+						cluster.genesis(who, domain, redirect, publicity, transObj, cbk);
+					}
+					else
+					{
+						listWho(web3.eth.defaultAccount, function(err, result)
+							{
+								if (err)
+								{
+									cbk('Error getting who address: '+err, null);
+								}
+								else
+								{
+									cluster.genesis(result.address, domain, redirect, publicity, transObj, cbk);
+								}
+							});
+					}
+					
+				}
+			});	
+	}
+
 	/** @private
 	*
 	*	Create a new "cluster" contract
