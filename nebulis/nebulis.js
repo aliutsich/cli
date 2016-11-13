@@ -22,8 +22,6 @@ var exports = module.exports = new Nebulis();
 
 /**
 *	Constructor
-*	@param Abi the abi array for the Nebulis contract
-*	@param Address the address of the Nebulis contract 
 */
 function Nebulis()
 {
@@ -34,6 +32,16 @@ function Nebulis()
 	var nebulisContract = null;
 	var dustContract = null;
 	var whoisContract = null;
+	
+	const NEBULIS_ABI = [];
+	const NEBULIS_ADDR = '';
+	
+	const DUST_ABI = [];
+	const DUST_ADDR = '';
+	
+	const WHOIS_ABI = [];
+	const WHO_ABI = [];
+	const CLUSTER_ABI = [];
 	
 	/**
 	*	Start a geth node to run in the background
@@ -131,57 +139,31 @@ function Nebulis()
 	/**	
 	*	Generic function to create a new entity in the Nebulis ecosystem
 	*	@param type the type of entity to create
-	*		-'who', 'cluster', or 'zone'
-	*	@param {Array} params the parameters to pass to the contract constructor
+	*		-'who', 'cluster', 'kernel', or 'zone'
+	*	@param {Object} params the parameters to pass to the contract constructor
 	*	@param gas the amount of gas with which to make the transaction
-	*	@param from the address from which to send the transaction
 	*	@param cbk a function to which to send the new contract 
 	*/
 	this.createNew = function(type, params, gas, cbk)
 	{
-		var doCreate = function()
+		switch(type.toLowerCase())
 		{
-			switch(type.toLowerCase())
-			{
-				case 'who':
-					newWho(gas, params, cbk);
-				break;
-				case 'cluster':
-					newCluster(params, cbk);
-				break;
-				case 'zone':
-					newZone(params, cbk);
-				break;
-				case 'domain':
-					newDomain(gas, params, cbk);
-				break;
-			}
-		};
-		//Make sure we're attached to Nebulis
-		if (nebulisContract)
-		{
-			 doCreate();
+			case 'who':
+				newWho(gas, params, cbk);
+			break;
+			case 'kernel':
+				newKernel(gas, params, cbk);
+			break;
+			case 'cluster':
+				newCluster(gas, params, cbk);
+			break;
+			case 'zone':
+				newZone(gas, params, cbk);
+			break;
+			case 'domain':
+				newDomain(gas, params, cbk);
+			break;
 		}
-		else
-		{
-			//get abi for nebulis contract
-			let abi = [];
-			//get address
-			let address = '';
-			
-			initContract(abi, address, function(err, nc)
-				{
-					if (err)
-					{
-						cbk(err, null);
-					}
-					else
-					{
-						nebulisContract = nc;
-						doCreate();
-					}
-				});
-		}	
 	};
 
 	/**
@@ -192,7 +174,7 @@ function Nebulis()
 	*/
 	this.list = function(listWhat, addr, cbk)
 	{
-		addr = addr || web3.eth.defaultAccount;
+		addr = addr || web3.eth.accounts[0];
 		switch(listWhat.toLowerCase())
 		{
 			case 'balance':
@@ -206,15 +188,103 @@ function Nebulis()
 			break;
 		}
 	};
-	
+
 	/**
+	*	Contribute dust to a kernel
+	*	@param kernelName the name of the kernel
+	*	@param dustAmt the amount of dust to contribute
+	*	@param gasAmt the amount of gas to make the transaction with
+	*	@param whoAddr the address of the who contract making the contribution
+	*		-defaults to that owned by the running eth node
+	*	@param cbk a function to pass the result to
+	*/
+	this.contribute = function(params, gasAmt, cbk)
+	{
+		var doContribute = function()
+		{
+			let transObj = {gas: gasAmt, from: params.address};
+			let encodedParams = hexEncodeArgs(params);
+			let result = nebulisContract.Contribute(encodedParams.kernelName,
+									   				encodedParams.dustAmt,
+									   				transObj);
+			if (result)
+			{
+				cbk(null, 'Contribution successful');
+			}
+			else
+			{
+				cbk('Error in making contribution', null);
+			}
+		};
+		
+		var getTheShowOnTheRoad = function()
+		{
+			if (nebulisContract)
+			{
+				doContribute();
+			}
+			else
+			{
+				initContract(NEBULIS_ABI, NEBULIS_ADDR, function(err, nc)
+				{
+					if (err)
+					{
+						cbk('Error connecting to Nebulis: '+err, null);
+					}
+					else
+					{
+						nebulisContract = nc;
+						doContribute();
+					}
+				});
+			}
+		}
+
+		if (whoAddr)
+		{
+			getTheShowOnTheRoad();
+		}
+		else
+		{
+			listWho(web3.eth.accounts[0], function(err, result)
+			{
+				if (err)
+				{
+					cbk('Error getting who address: '+err, null);
+				}
+				else
+				{
+					whoAddr = result.address;
+					getTheShowOnTheRoad();
+				}
+			});
+		}
+	};
+
+/*****************************************************
+
+<<<<<<<<< Private functions from here on >>>>>>>>>>>>>
+
+*****************************************************/
+
+//------- Various 'list' functions --------//
+	
+	/**	@private
 	*
+	*	List the dust balance of a who contract
+	*	@param whoAddr the address of the who contract
+	*	@param cbk a function to pass the result to 
 	*/
 	var listBalance = function(whoAddr, cbk)
 	{
 		var doListBalance = function()
 		{
-
+			let balance;
+			//need access to Dust's userBal mapping here
+			//something like:
+			//balance = dustContract.getUserBal(whoAddr);
+			
+			cbk(null, balance);		
 		};
 		
 		if (dustContract)
@@ -223,12 +293,7 @@ function Nebulis()
 		}
 		else
 		{
-			//get Dust abi
-			let abi = [];
-			//get Dust addr
-			let address = '';
-			
-			initContract(abi, address, function(err, dust)
+			initContract(DUST_ABI, DUST_ADDR, function(err, dust)
 				{
 					if (err)
 					{
@@ -244,6 +309,122 @@ function Nebulis()
 	};
 
 	/** @private
+	*
+	*	List the domains owned by a who contract
+	*	@param whoAddr the address of the who contract
+	*	@param cbk a function to pass the result to
+	*
+	*/
+	var listDomains = function(whoAddr, cbk)
+	{
+		//handle on who contract
+		var whoContract = null;
+
+		var doListDomains = function()
+		{
+			//get deeds from who contract
+		}
+	
+		//attach to who contract
+		initContract(WHO_ABI, whoAddr, function(err, who)
+		{
+			if (err)
+			{
+				cbk(err, null);
+			}
+			else
+			{
+				whoContract = who;
+				doListDomains();
+			}
+		});	
+	}
+	
+	/** @private
+	 *	List all the who contracts attached to a particular ethereum account. Defaults to current running account
+	 *	@param address optional parameter for 
+	 *	@param cbk a callback function to give the who info to.
+	 *
+     */
+	var listWho = function(ethAddress, cbk)
+	{
+		ethAddress = ethAddress || web3.eth.accounts[0];
+		
+		//address for whois
+		var whoisAddress = '';
+		
+		//address for who
+		var whoAddress;
+		
+		//handle to who contract object
+		var who;
+	
+		//data object to return
+		var whoAccount = {};
+		
+		var doListWho = function()
+		{
+			//get address of who contract
+			let ethAddressHex = web3.toHex(ethAddress);
+			whoAddress = whoisContract.whoDIS(ethAddressHex);
+			if(whoAddress)
+			{
+				//attach to who contract
+				initContract(WHO_ABI, whoAddress, function(err, wc)
+					{
+						if (err)
+						{
+							cbk(err, null);
+						}
+						else
+						{
+							who = wc;
+							if(who)
+							{
+								let whoAddressHex = web3.toHex(whoAddress);
+								//Don't think this function exists...
+								let whoInfo = who.whoInfo.call(whoAddressHex);
+								
+								whoAccount = {name: whoInfo[0], email: whoInfo[1], company:whoInfo[2], address:whoAddress};
+								cbk(null, whoAccount);	
+							}
+							else
+							{
+								cbk('ERROR: Unable to access who contract', null);
+							}
+						}
+					});
+			}
+			else
+			{
+				cbk('ERROR: No who contract exists for this address.', null);
+			}
+		};
+		if (whoisContract)
+		{
+			doListWho();
+		}
+		else
+		{	
+			//Get a whois contract reference
+			initContract(WHOIS_ABI, whoisAddress ,function(err, wic)
+				{
+					if (err)
+					{
+						cbk(err, null);
+					}
+					else
+					{
+						whoisContract = wic;
+						doListWho();
+					}
+				});
+		}
+	}
+
+//------- Various 'new' functions ---------//
+
+	/** @private
 	*	
 	*	Create a new "who" contract
 	*	@param gas the amount of gas with which to make the deploy transaction
@@ -256,11 +437,21 @@ function Nebulis()
 		var doNewWho = function()
 		{
 			let transObj = {gas: gasAmnt};
-			let name = web3.toHex(params.name);
-			let company = web3.toHex(params.company);
-			let email = web3.toHex(params.email);
+			let encodedParams = hexEncodeArgs(params);
 				
-			whoisContract.Genesis(name, company, email, transObj, cbk);
+			let result = whoisContract.Genesis(encodedParams.name, 
+											   encodedParams.company, 
+											   encodedParams.email, 
+											   transObj);
+	
+			if (result)
+			{
+				cbk(null, result);	
+			}
+			else
+			{
+				cbk('Error creating who contract, is one already registered under this address?', null);
+			}
 		};
 	
 		if (whoisContract)
@@ -269,13 +460,11 @@ function Nebulis()
 		}		
 		else
 		{
-			//get abi for whois contract
-			var abi = [];
 			//get address
 			var address = '';
 
 			//connect to whois contract
-			initContract(abi, address, function(err, whois)
+			initContract(WHOIS_ABI, address, function(err, whois)
 				{
 					if (err)
 					{
@@ -298,11 +487,12 @@ function Nebulis()
 	*/
 	var newDomain = function(gasAmnt, params, cbk)
 	{
-		let clusterAddr = ''; //get from params.clusterName
-		let abi = [];
+		let clusterAddr; //get from Nebulis.clusters mapping
+		//something like:
+		//clusterAddr = nebulisContract.getCluster(web3.toHex(params.clusterName));
 		
 		//attach to cluster contract
-		initContract(abi, clusterAddr, function(err, cluster)
+		initContract(CLUSTER_ABI, clusterAddr, function(err, cluster)
 			{
 				if (err)
 				{
@@ -311,18 +501,26 @@ function Nebulis()
 				else
 				{
 					let transObj = {gas: gasAmnt};
-					let domain = params.domainName;
-					let redirect = params.redirect;
-					let publicity = params.publicity;
-					let who = null;
-					if (params.who)
+					let encodedParams = hexEncodeArgs(params);
+					if (encodedParams.who)
 					{
-						who = params.who
-						cluster.genesis(who, domain, redirect, publicity, transObj, cbk);
+						let result = cluster.genesis(encodedParams.who, 
+												   	 encodedParams.domainName,
+													 encodedParams.redirect, 
+													 encodedParams.publicity, 
+													 transObj);
+						if (result)
+						{	
+							cbk(null, 'Domain created successfully');
+						}
+						else
+						{
+							cbk('Error creating domain', null);
+						}
 					}
 					else
 					{
-						listWho(web3.eth.defaultAccount, function(err, result)
+						listWho(web3.eth.accounts[0], function(err, result)
 							{
 								if (err)
 								{
@@ -330,7 +528,20 @@ function Nebulis()
 								}
 								else
 								{
-									cluster.genesis(result.address, domain, redirect, publicity, transObj, cbk);
+									let who = web3.toHex(result.address);
+									let retVal = cluster.genesis(who, 
+																 encodedParams.domainName,
+																 encodedParams.redirect, 
+																 encodedParams.publicity, 
+																 transObj);
+									if (retVal)
+									{	
+										cbk(null, 'Domain created successfully');
+									}
+									else
+									{
+										cbk('Error creating domain', null);
+									}
 								}
 							});
 					}
@@ -339,13 +550,121 @@ function Nebulis()
 			});	
 	}
 
+	/**	@private
+	*
+	*	Create a new kernel, a.k.a. pre-cluster
+	*	@param gasAmnt the amount of gas with which to send the transaction
+	*	@param params an object containing args to the Nebulis.amass function
+	*	@param cbk a function to pass the result or err msg to
+	*/
+	var newKernel = function(gasAmnt, params, cbk)
+	{
+		var doNewKernel = function()
+		{
+			let transObj = {gas: gasAmnt};
+			let encodedParams = hexEncodeArgs(params);
+			let result = nebulisContract.Amass(encodedParams.name, 
+											   encodedParams.open, 
+											   encodedParams.owners, 
+											   encodedParams.deposit,
+											   transObj);
+			if (result)
+			{
+				cbk(null, 'Kernel '+params.name+' created successfully!');
+			}
+			else
+			{
+				cbk('Error creating kernel', null);
+			}	
+		};
+
+		var getTheShowOnTheRoad = function()
+		{
+			if (nebulisContract)
+			{
+				doNewKernel();
+			}
+			else
+			{
+				initContract(NEBULIS_ABI, NEBULIS_ADDR, function(err, nc)
+					{
+						if (err)
+						{
+							cbk(err, null);
+						}
+						else
+						{
+							nebulisContract = nc;
+							doNewKernel();
+						}
+					});
+			}
+		}
+
+		if (!params.owners)
+		{
+			listWho(web3.eth.accounts[0], function(err, result)
+			{
+				if (err)
+				{
+					cbk('Error getting who address: '+err, null);
+				}
+				else
+				{
+					params.owners = [result.address];
+					getTheShowOnTheRoad();
+				}
+			});
+		}
+		else
+		{
+			getTheShowOnTheRoad();
+		}
+	};
+
 	/** @private
 	*
-	*	Create a new "cluster" contract
+	*	Create a new "cluster" contract out of an existing kernel
+	*	@param gasAmnt the amount of gas with which to send the transaction
+	*	@param params an object containing args for the nebulis.genesis function
+	*	@param cbk a function to call with the success or error msg
 	*/
-	var newCluster = function(params, cbk)
+	var newCluster = function(gasAmnt, params, cbk)
 	{
+		var doNewClusterr = function()
+		{
+			let transObj = {gas: gasAmnt};
+			let encodedParams = hexEncodeArgs(params);
+			let result = nebulisContract.Genesis(encodedParams.name, transObj);
+			if (result)
+			{
+				cbk(null, 'Cluster '+params.name+' created successfully!');
+			}
+			else
+			{	
+				cbk('Error creating cluster', null);
+			}
+		}
 
+		if (nebulisContract)
+		{
+			doNewCluster();
+		}
+		else
+		{
+			initContract(NEBULIS_ABI, NEBULIS_ADDR, function(err, nc)
+				{
+					if (err)
+					{
+						cbk(err, null);
+					}
+					else
+					{
+						nebulisContract = nc;
+						doNewCluster();
+					}
+				});
+		}					
 	};
 	
 	/** @private
@@ -356,6 +675,8 @@ function Nebulis()
 	{
 
 	};
+
+//------- Functions for initializing contract references -------//
 
 	/** @private
 	*
@@ -374,7 +695,7 @@ function Nebulis()
 		}
 		else
 		{
-			cbk('Error attaching to the Nebulis contract, check the address provided', null);
+			cbk('Error attaching to the contract, check the address and abi provided', null);
 		}
 	};
 
@@ -427,63 +748,21 @@ function Nebulis()
 				}
 			});
 	};
+
+//------ Utility Functions ------//
 	
-	/** @private
-	 *	List all the who contracts attached to a particular ethereum account. Defaults to current running account
-	 *	@param address optional parameter for 
-	 *	@param cbk a callback function to give the who contract to.
-	 *
-     */
-	var listWho = function(ethAddress, cbk)
+	function hexEncodeArgs(argObj)
 	{
-		let abi = [];
-		let whoisAddress = '';
-		var whois;
-		var who;
-		var whoAddress;
-		var whoAccount = {};
-		//var whoisAddress = nebulisContract.Whois();
-		//Get a whois contract reference
-		initContract(abi,whoisAddress , function(err, wic)
-			{
-				if (err)
-				{
-					cbk(err, null);
-				}
-				else
-				{
-					whois = wic;
-				}
-			});
-		whoAddress = whois.whoDIS(address);
-		if(whoAddress)
+		var encodedArgs = {};
+		for (let arg in argObj)
 		{
-			initContract(abi,whoisAddress , function(err, wc)
-				{
-					if (err)
-					{
-						cbk(err, null);
-					}
-					else
-					{
-						who = wc;
-					}
-				});
-			if(who)
+			if (argObj.hasOwnProperty(arg))
 			{
-				let whoInfo = who.whoInfo.call(whoAddress);
-				whoAccount = {name: whoInfo[0], email: whoInfo[1], company:whoInfo[2], address:whoAddress};
-				cbk(null, whoAccount);	
+				encodedArgs[arg] = web3.toHex(argObj[arg]);
 			}
-			else
-			{
-				cbk('ERROR: Unable to access who contract', null);
-			}
-		}
-		else
-		{
-			cbk('ERROR: No who contract exists for this address.', null);
-		}
+		}	
+		
+		return encodedArgs;
 	}
 }
 
