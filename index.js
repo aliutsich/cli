@@ -85,9 +85,9 @@ program.command('new-who')
     .action(function(options)
     {
 		var params = {};
-		params.name = options.name || '';
-		params.email = options.email || '';
-		params.company = options.company || '';
+		params.name = options.name || '*';
+		params.email = options.email || '*';
+		params.company = options.company || '*';
 		var gas = options.gas || DEFAULT_GAS_AMNT;
 	
 		nebulis.createNew('who', params, gas, function(err, result)
@@ -255,16 +255,68 @@ program.command('list-domains <who-address>')
 			});
 	});
 
+
+//-------- 'Void' commands -------//
+
+program.command('void-who <who-address>')
+	.description('Delete a who contract')
+	.option('-g, --gas <gas-amount>', 'The amount of gas with which to make the transaction')
+	.action(function(who, options)
+	{
+		var params = {};
+		params.who = who;
+	
+		var gas = options.gas || DEFAULT_GAS_AMNT;
+
+		nebulis.void('who', params, gas, function(err, result)
+			{
+				if (err)
+				{
+					console.log('Error deleting who: '+err);
+				}
+				else
+				{
+					console.log(result);
+				}
+			});
+	});
+
+program.command('void-domain <ipa>')
+	.description('Eject a registered domain')
+	.option('-g, --gas <gas-amount>', 'The amount of gas with which to make the transaction)
+	.option('-o, --owner <owner-address>', 'The address of the who contract in charge of the domain. '+
+			'Defaults to that associated with the running node')
+	.action(function(ipa, options)
+	{
+		var params = {};
+		params.owner = options.owner || null;
+		
+		var gas = options.gas || DEFAULT_GAS_AMNT;
+
+		nebulis.void('domain', params, gas, function(err, result)
+			{
+				if (err)
+				{
+					console.log('Error deleting domain: '+err, null);
+				}
+				else
+				{
+					console.log(result);
+				}
+			});
+	});
+
+
 //-------- Other stuff  ---------//
 
 program.command('contribute <kernel-name> <amount>')
 	.description('Contribute dust to a kernel')
-	.option('-g, --gas <gas-amount>', 'The amount of gas with which to make the transaction');
-	.option('-a, --address <who-address>', 'The address of the Who contract from which to contribute')
+	.option('-g, --gas <gas-amount>', 'The amount of gas with which to make the transaction')
+	.option('-f, --from <from-address>', 'The address of the who contract from which to contribute')
 	.action(function(name, amount, options)
 	{
 		var params = {};
-		params.address = options.address || null;
+		params.from = options.from || null;
 		params.kernelName = name;
 		params.dustAmt = amount;
 
@@ -281,6 +333,88 @@ program.command('contribute <kernel-name> <amount>')
 					console.log(result);
 				}
 			}); 
+	});
+
+program.command('transfer <ipa> <domain> <to-address>')
+	.description('Transfer ownership of a domain')
+	.option('-g, --gas <gas-amount>', 'The amount of gas with which to make the transaction')
+	.option('-f, --from <from-address>', 'The address of the who contract from which to transfer the domain.  '+
+			' Defaults to that owned by the currently running node')
+	.action(function(ipa, domain, to, options)
+	{
+		var params = {};
+		params.ipa = ipa;
+		params.domain = domain;
+		params.to = to;
+		params.from = options.from || null;
+		
+		var gas = options.gas || DEFAULT_GAS_AMNT;
+
+		nebulis.transfer(params, gas, function(err, result)
+			{	
+				if (err)
+				{
+					console.log('error transferring domain: '+err);
+				}
+				else
+				{
+					console.log(result);
+				}
+			});
+	});
+
+program.command('set-creds')
+	.description('Set credentials associated with an IPA or who account')
+	.option('-g, --gas <gas-amount>', 'The amount of gas with which to make the transaction')
+	.option('-n, --name <name>', 'The name to set')
+	.option('-e, --email <email>', 'The email address to set')
+	.option('-c, --company <company>', 'The company name to set')
+	.option('-i, --ipa <ipa>', 'The IPA to set credentials for.  If omitted the credentials will be set globally')
+	.option('-w, --who <who-address>', 'The address of the Who contract to set credentials for.  '+
+			'Defaults to that associated with the currently running node');
+	.action(function(options)
+	{
+		var params = {};
+		params.name = options.name || '*';
+		params.email = options.email || '*';
+		params.company = options.company || '*';
+		params.ipa = options.ipa || null;
+		params.who = options.who || null;
+		
+		var gas = options.gas || DEFAULT_GAS_AMNT;
+
+		nebulis.setCredentials(params, gas, function(err, result)
+			{
+				if (err)
+				{
+					console.log('Error setting credentials: '+err);
+				}
+				else
+				{
+					console.log(result);
+				}
+			});
+	});
+
+program.command('get-creds <ipa>')
+	.description('Get the name, email address, and company associated with the given IPA')
+	.option('-w, --who <who-address>', 'The who contract address to get credentials from')
+	.action(function(ipa, options)
+	{
+		nebulis.getCredentials(options.who, ipa, function(err, result)
+			{
+				if (err)
+				{
+					console.log('Error retrieving credentials'+err);
+				}
+				else
+				{
+					console.log('Got credentials for IPA '+ipa+': ');
+					console.log('	-Name: '+(result.name || '*'));
+					console.log('	-Email: '+(result.email || '*'));
+					console.log('	-Company: '+(result.company || '*'));
+				}
+			});
 	});
 
 program.parse(process.argv);

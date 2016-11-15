@@ -190,19 +190,36 @@ function Nebulis()
 	};
 
 	/**
+	*	Delete various Nebulis entities
+	*	@param type the type of entity to void
+	*	@param params args to pass to the particular void function
+	*	@params gasAmnt the amount of gas with which to make the transaction
+	*	@params cbk a function to call with the success or err msg
+	*/
+	this.void = function(type, params, gasAmnt, cbk)
+	{
+		switch(type)
+		{
+			case 'who':
+				voidWho(params, gasAmnt, cbk);	
+			break;
+			case 'domain':
+				voidDomain(params, gasAmnt, cbk);
+			break;
+		}
+	};
+
+	/**
 	*	Contribute dust to a kernel
-	*	@param kernelName the name of the kernel
-	*	@param dustAmt the amount of dust to contribute
+	*	@param params an object containing args to pass to the nebulis.contribute contract function
 	*	@param gasAmt the amount of gas to make the transaction with
-	*	@param whoAddr the address of the who contract making the contribution
-	*		-defaults to that owned by the running eth node
 	*	@param cbk a function to pass the result to
 	*/
 	this.contribute = function(params, gasAmt, cbk)
 	{
 		var doContribute = function()
 		{
-			let transObj = {gas: gasAmt, from: params.address};
+			let transObj = {gas: gasAmt, from: params.from};
 			let encodedParams = hexEncodeArgs(params);
 			let result = nebulisContract.Contribute(encodedParams.kernelName,
 									   				encodedParams.dustAmt,
@@ -240,6 +257,204 @@ function Nebulis()
 			}
 		}
 
+		if (params.from)
+		{
+			getTheShowOnTheRoad();
+		}
+		else
+		{
+			listWho(web3.eth.accounts[0], function(err, result)
+			{
+				if (err)
+				{
+					cbk('Error getting who address: '+err, null);
+				}
+				else
+				{
+					params.from = result.address;
+					getTheShowOnTheRoad();
+				}
+			});
+		}
+	};
+
+	/**
+	*	Transfer a domain deed from one account to another
+	*	@param params an object containing args to pass to the who.transfer contract function
+	*	@param gasAmnt the amount of gas with which to make the transaction
+	*	@param cbk a function to pass the result or err msg to
+	*/
+	this.transfer = function(params, gasAmnt, cbk)
+	{
+		var whoContract = null;
+		
+		var doTransfer = function()
+		{
+			let encodedParams = hexEncodeArgs(params);
+			let transObj = {gas: gasAmnt}
+			
+			let result = whoContract.transfer(encodedParams.ipa,
+											  encodedParams.domain,
+											  encodedParams.to,
+											  transObj);
+			if (result)
+			{
+				cbk(null, 'Transfer successful');	
+			}
+			else
+			{
+				cbk('Error making transfer', null);
+			}
+		};
+		
+		var getTheShowOnTheRoad = function()
+		{
+			//connect to who contract
+			initContract(WHO_ABI, params.from, function(err, who)
+				{
+					if (err)
+					{
+						cbk('Error connecting to who contract: '+err, null);
+					}
+					else
+					{
+						whoContract = who;
+						doTransfer();
+					}
+				});
+		}
+		
+		if (params.from)
+		{
+			getTheShowOnTheRoad();
+		}
+		else
+		{
+			//get who address
+			listWho(web3.eth.accounts[0], function(err, result)
+			{
+				if (err)
+				{
+					cbk('Error getting who address: '+err, null);
+				}
+				else
+				{
+					params.from = result.address;
+					getTheShowOnTheRoad();
+				}
+			});
+		}
+	};
+
+	/**
+	*	Set the credentials (name, email, and/or company) associated with an ipa or who contract
+	*	@param params an object containing the credential values to set
+	*	@param gasAmnt the amount of gas with which to make the transaction
+	*	@param cbk a function to pass the success or error msg to
+	*/
+	this.setCredentials = function(params, gasAmnt, cbk)
+	{
+		var who = null;
+	
+		var doSetCreds = function()
+		{
+			let transObj = {gas: gasAmnt};
+			let params.global = !params.ipa;
+			let params.ipa = params.ipa || '*';
+			let encodedParams = hexEncodeArgs(params);
+			
+			let result = who.setCredentials(encodedParams.global,
+									   	    encodedParams.ipa,
+							  		 		encodedParams.name,
+							   				encodedParams.email,
+							   				encodedParams.company,
+							   				transObj);
+			if (result)
+			{
+				cbk(null, 'Credentials set successfully');
+			}
+			else
+			{
+				cbk('Error setting credentials', null);
+			}				
+		}
+
+		var getTheShowOnTheRoad = function()
+		{
+			initContract(WHO_ABI, params.who, function(err, w)
+				{
+					if (err)
+					{
+						cbk('Error connecting to who contract: '+err);
+					}
+					else
+					{
+						who = w;
+						doSetCreds();
+					}
+				});
+		}
+		
+		if (params.who)
+		{
+			getTheShowOnTheRoad()
+		}
+		else
+		{
+			listWho(web3.eth.accounts[0], function(err, result)
+			{
+				if (err)
+				{
+					cbk('Error getting who address: '+err, null);
+				}
+				else
+				{
+					params.who = result.address;
+					getTheShowOnTheRoad();
+				}
+			});
+		}		
+	};
+
+	/**
+	*	Get the credentials (name, email, company) associated with an IPA
+	*	@param whoAddr the who contract address to retrieve the credentials from.
+	*	@param ipa the ipa to retrieve the credentials for
+	*	@param cbk a function to pass the result or error msg to
+	*/
+	this.getCredentials = function(whoAddr, ipa, cbk)
+	{
+		var who = null;
+
+		var doGetCreds = function()
+		{
+			let creds = who.getCredentials(web3.toHex(ipa));
+			if (creds)
+			{
+				cbk(null, {'name':creds[0], 'email':creds[1], 'company':creds[2]});
+			}	
+			else
+			{
+				cbk('Error retrieving credentials; they may be private', null);
+			}
+		};
+
+		var getTheShowOnTheRoad = function()
+		{
+			initContract(WHO_ABI, whoAddr, function(err, w)
+				{
+					if (err)
+					{
+						cbk('Error connecting to who contract: '+err, null);
+					}
+					else
+					{
+						who = w;
+						doSetCreds();
+					}
+				});
+		};
+
 		if (whoAddr)
 		{
 			getTheShowOnTheRoad();
@@ -260,6 +475,7 @@ function Nebulis()
 			});
 		}
 	};
+
 
 /*****************************************************
 
@@ -349,16 +565,12 @@ function Nebulis()
 	var listWho = function(ethAddress, cbk)
 	{
 		ethAddress = ethAddress || web3.eth.accounts[0];
-		
 		//address for whois
 		var whoisAddress = '';
-		
 		//address for who
 		var whoAddress;
-		
 		//handle to who contract object
 		var who;
-	
 		//data object to return
 		var whoAccount = {};
 		
@@ -383,7 +595,7 @@ function Nebulis()
 							{
 								let whoAddressHex = web3.toHex(whoAddress);
 								//Don't think this function exists...
-								let whoInfo = who.whoInfo.call(whoAddressHex);
+								let whoInfo = whoisContract.whoInfo.call(whoAddressHex);
 								
 								whoAccount = {name: whoInfo[0], email: whoInfo[1], company:whoInfo[2], address:whoAddress};
 								cbk(null, whoAccount);	
@@ -400,6 +612,7 @@ function Nebulis()
 				cbk('ERROR: No who contract exists for this address.', null);
 			}
 		};
+
 		if (whoisContract)
 		{
 			doListWho();
@@ -427,8 +640,7 @@ function Nebulis()
 	/** @private
 	*	
 	*	Create a new "who" contract
-	*	@param gas the amount of gas with which to make the deploy transaction
-	*	@param from the address of the owner of the new contract
+	*	@param gasAmnt the amount of gas with which to make the deploy transaction
 	*	@param params the parameters to pass to the who constructor
 	*	@param cbk a callback function to which to pass the address of the new contract
 	*/
@@ -674,6 +886,108 @@ function Nebulis()
 	var newZone = function(params, cbk)
 	{
 
+	};
+
+//-------- Various 'Void' functions --------//
+
+	var voidWho = function(params, gasAmnt, cbk)
+	{
+		var doVoidWho = function()
+		{
+			let transObj = {gas: gasAmnt};
+			let encodedParams = hexEncodeArgs(params);
+			
+			let result = whoisContract.void(encodedParams.who, transObj);
+		
+			if (result)
+			{
+				cbk(null, 'Who contract successfully voided');
+			}
+			else
+			{
+				cbk('Error voiding contract', null);
+			}
+		};
+		
+		if (whoisContract)
+		{
+			doVoidWho();
+		}	
+		else
+		{
+			let addr = '';
+
+			initContract(WHOIS_ABI, addr, function(err, whois)
+				{
+					if (err)
+					{
+						cbk('Error connecting to the Whois contract', null);
+					}
+					else
+					{
+						whoisContract = whois;
+						doVoidWho();
+					}
+				}); 
+		};
+	};
+
+	var voidDomain = function(params, gasAmnt, cbk);
+	{
+		var owner = null;
+
+		var doVoidDomain = function()
+		{
+			let transObj = {gas: gasAmnt};
+			let encodedIpa = web3.toHex(params.ipa);
+			let result = who.eject(encodedIpa, transObj);
+		
+			if (result)
+			{
+				cbk(null, 'Domain successfully ejected');
+			}
+			else
+			{
+				ckb('Error ejecting domain', null);
+			}
+		};
+		
+		var getTheShowOnTheRoad = function()
+		{
+			//connect to owning who contract
+			initContract(WHO_ABI, params.owner, function(err, who)
+				{
+					if (err)
+					{
+						cbk('Error connecting to owning contract: '+err, null);
+					}
+					else
+					{
+						owner = who;
+						doVoidDomain();
+					}
+				});
+		};
+
+		if (params.owner)
+		{
+			getTheShowOnTheRoad();
+		}
+		else
+		{
+			listWho(web3.eth.accounts[0], function(err, result)
+			{
+				if (err)
+				{
+					cbk('Error getting who address: '+err, null);
+				}
+				else
+				{
+					params.owner = result.address;
+					getTheShowOnTheRoad();
+				}
+			});
+		}
 	};
 
 //------- Functions for initializing contract references -------//
