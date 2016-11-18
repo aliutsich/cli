@@ -407,7 +407,11 @@ program.command('get-creds')
 	.option('-i, --ipa <ipa>', 'The IPA to get credentials from.  If unset, global who credentials will be retrieved')
 	.action(function(options)
 	{
-		nebulis.getCredentials(options.who, options.ipa, function(err, result)
+		var params = {
+			whoAddr: options.who,
+			ipa: options.ipa || null
+		};
+		nebulis.getCredentials(params, function(err, result)
 			{
 				if (err)
 				{
