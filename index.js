@@ -88,9 +88,9 @@ program.command('new-who')
 		params.name = options.name || '*';
 		params.email = options.email || '*';
 		params.company = options.company || '*';
-		var gas = options.gas || DEFAULT_GAS_AMNT;
+		params.gas = options.gas || DEFAULT_GAS_AMNT;
 	
-		nebulis.createNew('who', params, gas, function(err, result)
+		nebulis.createNew('who', params, function(err, result)
 			{
 				if (err)
 				{
@@ -116,9 +116,9 @@ program.command('amass <name> <deposit>')
 		params.open = !options.private;
 		params.name = name;
 		params.deposit = deposit;
-		var gas = options.gas || DEFAULT_GAS_AMNT;
+		params.gas = options.gas || DEFAULT_GAS_AMNT;
 		
-		nebulis.createNew('kernel', params, gas, function(err, result)
+		nebulis.createNew('kernel', params, function(err, result)
 			{
 				if (err)
 				{
@@ -137,9 +137,9 @@ program.command('new-cluster <name>')
 	.action(function(name, options)
 	{
 		var params = {'name': name};
-		var gas = options.gas || DEFAULT_GAS_AMNT;
+		params.gas = options.gas || DEFAULT_GAS_AMNT;
 
-		nebulis.createNew('cluster', params, gas, function(err, result)
+		nebulis.createNew('cluster', params, function(err, result)
 			{
 				if (err)
 				{	
@@ -177,7 +177,7 @@ program.command('new-domain <cluster-name> <domain-name> <redirect-hash>')
 			params.who = options.who;
 		}		
 	
-		var gasAmnt = options.gas || 2000;	
+		params.gas = options.gas || DEFAULT_GAS_AMNT;	
 	
 		nebulis.createNew('domain', params, gasAmnt, function(err, result)
 			{
@@ -194,11 +194,12 @@ program.command('new-domain <cluster-name> <domain-name> <redirect-hash>')
 
 //------- Commands related to fetching info about Nebulis entities -------//
 
-program.command('list-balance <who-address>')
+program.command('list-balance')
 	.description('Display the balance of a given Who contract')
-    .action(function(who)
+	.option('-a, --address', 'The address of the who contract.  Defaults to that associated with the running node')
+    .action(function(options)
     {
-		nebulis.list('balance', who, function(err, result)
+		nebulis.list('balance', {address: options.address || null}, function(err, result)
 			{
 				if (err)
 				{
@@ -213,11 +214,15 @@ program.command('list-balance <who-address>')
 
 program.command('list-who')
 	.description('Display the Who contracts owned by a given address')
-	.option('-a, --address <address>', 'The address to look up, defaults to address associated with currently running node');
+	.option('-a, --address <address>', 'The address to look up, defaults to address associated with currently running node')
+	.option('-v, --verbose', 'If set will retrieve contact info as well as the address of the who contract')
 	.action(function(options)
 	{
-		var addr = options.address || null;
-		nebulis.list('who', addr, function(err, result)
+		var params = {
+			 address: options.address || null,
+			 verbose: !!options.verbose
+		};
+		nebulis.list('who', params, function(err, result)
 			{
 				if (err)
 				{
@@ -227,18 +232,22 @@ program.command('list-who')
 				{
 					console.log('Found who contract: ');
 					console.log('	-address: '+result.address);
-					console.log('	-name: '+(result.name ? result.name : '<none>'));
-					console.log('	-email: '+(result.email ? result.email : '<none>'));
-					console.log('	-company: '+(result.company ? result.company : '<none>'));
-				}	
+					if (options.verbose)
+					{
+						console.log('	-name: '+(result.name ? result.name : '<none>'));
+						console.log('	-email: '+(result.email ? result.email : '<none>'));
+						console.log('	-company: '+(result.company ? result.company : '<none>'));
+					}
+				}		
 			});
 	});
 
-program.command('list-domains <who-address>')
+program.command('list-domains')
 	.description('Display the domains owned by the given Who contract')
-	.action(function(who)
+	.option('-a, --address <who-address>', 'The address of the who contract.  Defaults to that associated with the running node')
+	.action(function(options)
 	{
-		nebulis.list('domains', who, function(err, result)
+		nebulis.list('domains', {address: options.address || null}, function(err, result)
 			{
 				if (err)
 				{
@@ -265,10 +274,9 @@ program.command('void-who <who-address>')
 	{
 		var params = {};
 		params.who = who;
-	
-		var gas = options.gas || DEFAULT_GAS_AMNT;
+		params.gas = options.gas || DEFAULT_GAS_AMNT;
 
-		nebulis.void('who', params, gas, function(err, result)
+		nebulis.void('who', params, function(err, result)
 			{
 				if (err)
 				{
@@ -290,10 +298,9 @@ program.command('void-domain <ipa>')
 	{
 		var params = {};
 		params.owner = options.owner || null;
-		
-		var gas = options.gas || DEFAULT_GAS_AMNT;
+		params.gas = options.gas || DEFAULT_GAS_AMNT;
 
-		nebulis.void('domain', params, gas, function(err, result)
+		nebulis.void('domain', params, function(err, result)
 			{
 				if (err)
 				{
@@ -319,10 +326,9 @@ program.command('contribute <kernel-name> <amount>')
 		params.from = options.from || null;
 		params.kernelName = name;
 		params.dustAmt = amount;
-
-		var gas = options.gas || DEFAULT_GAS_AMNT;
+		params.gas = options.gas || DEFAULT_GAS_AMNT;
 		
-		nebulis.contribute(params, gas, function(err, result)	
+		nebulis.contribute(params, function(err, result)	
 			{
 				if (err)
 				{
@@ -347,10 +353,9 @@ program.command('transfer <ipa> <domain> <to-address>')
 		params.domain = domain;
 		params.to = to;
 		params.from = options.from || null;
-		
-		var gas = options.gas || DEFAULT_GAS_AMNT;
+		params.gas = options.gas || DEFAULT_GAS_AMNT;
 
-		nebulis.transfer(params, gas, function(err, result)
+		nebulis.transfer(params, function(err, result)
 			{	
 				if (err)
 				{
@@ -380,10 +385,9 @@ program.command('set-creds')
 		params.company = options.company || '*';
 		params.ipa = options.ipa || null;
 		params.who = options.who || null;
-		
-		var gas = options.gas || DEFAULT_GAS_AMNT;
+		params.gas = options.gas || DEFAULT_GAS_AMNT;
 
-		nebulis.setCredentials(params, gas, function(err, result)
+		nebulis.setCredentials(params, function(err, result)
 			{
 				if (err)
 				{
@@ -396,12 +400,14 @@ program.command('set-creds')
 			});
 	});
 
-program.command('get-creds <ipa>')
-	.description('Get the name, email address, and company associated with the given IPA')
-	.option('-w, --who <who-address>', 'The who contract address to get credentials from')
-	.action(function(ipa, options)
+program.command('get-creds')
+	.description('Get the name, email address, and company associated with the given IPA or who contract')
+	.option('-w, --who <who-address>', 'The who contract address to get credentials from.  '+
+		'Defaults to that associated with the currently running node')
+	.option('-i, --ipa <ipa>', 'The IPA to get credentials from.  If unset, global who credentials will be retrieved')
+	.action(function(options)
 	{
-		nebulis.getCredentials(options.who, ipa, function(err, result)
+		nebulis.getCredentials(options.who, options.ipa, function(err, result)
 			{
 				if (err)
 				{
@@ -409,12 +415,53 @@ program.command('get-creds <ipa>')
 				}
 				else
 				{
-					console.log('Got credentials for IPA '+ipa+': ');
+					if (options.ipa)
+						console.log('Got credentials for IPA '+ipa+': ');
+					else
+						console.log('Got global credentials: '
+
 					console.log('	-Name: '+(result.name || '*'));
 					console.log('	-Email: '+(result.email || '*'));
 					console.log('	-Company: '+(result.company || '*'));
 				}
 			});
+	});
+
+program.command('get-owner <ipa>')
+	.description('Get information about the owner of a given IPA')
+	.option('-v, --verbose', 'If set, will retrieve contact info about the owner in addition to the who contract address')
+	.action(function(ipa, options)
+	{
+		var params = {
+			'ipa': ipa,
+			'verbose': options.verbose || null
+		};
+
+		nebulis.getOwner(params, function(err, result)
+			{
+				if (err)
+				{
+					if (err === 'Found address only')
+					{
+						console.log(ipa+' is owned by '+result.owner);
+						console.log('Couldn\'t find any other info');
+					}
+					else
+					{
+						console.log('Error: '+err);
+					}
+				}
+				else
+				{
+					console.log(ipa+' is owned by '+result.owner);
+					if (options.verbose)
+					{
+						console.log('	-Name: '+result.name);
+						console.log('	-Email: '+result.email);
+						console.log('	-Company: '+result.company);
+					}
+				}
+			});	
 	});
 
 program.parse(process.argv);
